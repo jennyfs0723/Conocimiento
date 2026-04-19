@@ -58,21 +58,24 @@ CREATE PROCEDURE registrar_envio( IN numero_guia VARCHAR(50), IN fecha_hora_rece
 
 DELIMITER;
 
--- llamamos el procedimiento almacenado para insertar el nuevo envio CALL registrar_envio('G-011', '2026-03-14 12:30:00', 2,1,1, 'Carlos Ramirez', 'Liliana Caicedo', 'Cra 29 #30s-4, Medellin', 'Calle 85 No.60-82, Cartagena', 'normal', 'Envio Ropa', 12.00, '50x50x50 cm', 380000, 30000, 'efectivo', 'en transito', 'No se puede ensuciar', 1);
+CALL registrar_envio('G-011', '2026-03-14 12:30:00', 2,1,1, 'Carlos Ramirez', 'Liliana Caicedo', 'Cra 29 #30s-4, Medellin', 'Calle 85 No.60-82, Cartagena', 'normal', 'Envio Ropa', 12.00, '50x50x50 cm', 380000, 30000, 'efectivo', 'en transito', 'No se puede ensuciar', 1);
 
--- verificamos si el envio se guardo correctamente SELECT direccion_origen AS origen, direccion_destino AS destino, descripcion_contenido AS descripcion FROM envios WHERE numero_guia = 'G-011';
+-- verificamos si se guardo correctamente 
+SELECT direccion_origen AS origen, direccion_destino AS destino, descripcion_contenido AS descripcion FROM envios WHERE numero_guia = 'G-011';
 
 -- 2. AsignarRutaOptima: Asigna la ruta óptima para un envío según distancia y tráfico.
 
 DELIMITER $$
 
-CREATE PROCEDURE AsignarRutaOptima( IN numeroGuia VARCHAR(50) ) BEGIN DECLARE rutaOptima VARCHAR(50); SELECT ruta_distribucionID INTO rutaOptima FROM ruta_distribucion ORDER BY tiempo_estimado ASC LIMIT 1; -- si la ruta es optima se asigna IF rutaOptima IS NOT NULL THEN UPDATE envios SET ruta_distribucion = rutaOptima WHERE numero_guia = numeroGuia; -- si no hay una ruta valida no va a generar un null si no que envia este mensaje ELSE SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'No se encontró una ruta válida para este envío'; END IF; END $$
+CREATE PROCEDURE AsignarRutaOptima( IN numeroGuia VARCHAR(50) ) BEGIN DECLARE rutaOptima VARCHAR(50); SELECT ruta_distribucionID INTO rutaOptima FROM ruta_distribucion ORDER BY tiempo_estimado ASC LIMIT 1; IF rutaOptima IS NOT NULL THEN UPDATE envios SET ruta_distribucion = rutaOptima WHERE numero_guia = numeroGuia;  ELSE SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Ruta no disponible'; END IF; END $$
 
 DELIMITER ;
 
--- llamo el procedimiento mediante el numero de guia CALL AsignarRutaOptima('G-011');
+-- llamo el procedimiento 
+CALL AsignarRutaOptima('G-011');
 
--- consulto si se asigno ruta optima SELECT e.numero_guia, r.nombre AS ruta_asignada, r.zona_geografica, r.distancia_total_km, r.tiempo_estimado FROM envios e JOIN ruta_distribucion r ON e.ruta_distribucion = r.ruta_distribucionID WHERE e.numero_guia = 'G-011';
+-- consulta
+SELECT e.numero_guia, r.nombre AS ruta_asignada, r.zona_geografica, r.distancia_total_km, r.tiempo_estimado FROM envios e JOIN ruta_distribucion r ON e.ruta_distribucion = r.ruta_distribucionID WHERE e.numero_guia = 'G-011';
 
 -- 3. AsignarVehiculoConductor: Asigna vehículo y conductor para un envío verificando disponibilidad.
 
